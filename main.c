@@ -9,13 +9,15 @@ copyright (C) 2017 Koshi.Michisaka
 #include <stdlib.h>
 #include <string.h>
 #include <netinet/in.h>
+#include <unistd.h>
 
 #define LOCAL_PORT 60000
 
 int main(int argc, char **argv)
 {
-  int listenfd;
-  struct sockaddr_in listenaddr;
+  int listenfd, connectfd;
+  struct sockaddr_in listenaddr, clientaddr;
+  socklen_t len;
 
   if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
     perror("socket error");
@@ -35,6 +37,16 @@ int main(int argc, char **argv)
   if ((listen(listenfd, 5)) == -1) {
     perror("listen error");
     exit(EXIT_FAILURE);
+  }
+
+  for (;;) {
+    len = sizeof(clientaddr);
+    if ((connectfd = accept(listenfd, (struct sockaddr*)&clientaddr, &len)) == -1) {
+      perror("accept error");
+      exit(EXIT_FAILURE);
+    }
+
+    close(connectfd);
   }
 
   exit(EXIT_SUCCESS);
