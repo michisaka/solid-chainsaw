@@ -11,12 +11,15 @@ copyright (C) 2017 Koshi.Michisaka
 #include <netinet/in.h>
 #include <unistd.h>
 #include <signal.h>
+#include <sys/wait.h>
+#include <errno.h>
 
 #define LOCAL_PORT 60000
 
 typedef void Sigfunc(int);
 
 Sigfunc *setup_signal(int signo, Sigfunc *func);
+void sigchld_handler(int signo);
 
 
 int main(int argc, char **argv)
@@ -46,9 +49,15 @@ int main(int argc, char **argv)
     exit(EXIT_FAILURE);
   }
 
+  setup_signal(SIGCHLD, sigchld_handler);
+  setup_signal(SIGPIPE, SIG_IGN);
+
   for (;;) {
     len = sizeof(clientaddr);
     if ((connectfd = accept(listenfd, (struct sockaddr*)&clientaddr, &len)) == -1) {
+      if (errno == EINTR) {
+	continue;
+      }
       perror("accept error");
       exit(EXIT_FAILURE);
     }
@@ -89,4 +98,16 @@ Sigfunc *setup_signal(int signo, Sigfunc *func)
   if (sigaction(signo, &act, &oact) < 0)
     return(SIG_ERR);
   return(oact.sa_handler);
+}
+
+void sigchld_handler(int signo)
+{
+  pid_t pid;
+  int stat;
+
+  while ((pid = waitpid(-1, &stat, WNOHANG)) > 0) {
+    ;
+  }
+
+  return;
 }
