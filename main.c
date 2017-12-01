@@ -18,6 +18,7 @@ int main(int argc, char **argv)
   int listenfd, connectfd;
   struct sockaddr_in listenaddr, clientaddr;
   socklen_t len;
+  pid_t child_pid;
 
   if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
     perror("socket error");
@@ -46,7 +47,18 @@ int main(int argc, char **argv)
       exit(EXIT_FAILURE);
     }
 
-    close(connectfd);
+    child_pid = fork();
+    switch (child_pid) {
+    case -1:
+      perror("fork error");
+      exit(EXIT_FAILURE);
+    case 0:
+      close(listenfd);
+      close(connectfd);
+      exit(EXIT_SUCCESS);
+    default:
+      close(connectfd);
+    }
   }
 
   exit(EXIT_SUCCESS);
