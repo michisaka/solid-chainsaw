@@ -15,6 +15,7 @@ copyright (C) 2017 Koshi.Michisaka
 #include <errno.h>
 
 #include "config.h"
+#include "bouncer.h"
 
 typedef void Sigfunc(int);
 
@@ -72,6 +73,7 @@ int main(int argc, char **argv)
       exit(EXIT_FAILURE);
     case 0:
       close(listenfd);
+      bouncer_process(connectfd, &config);
       close(connectfd);
       exit(EXIT_SUCCESS);
     default:
