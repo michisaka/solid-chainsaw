@@ -14,7 +14,7 @@ copyright (C) 2017 Koshi.Michisaka
 #include <sys/wait.h>
 #include <errno.h>
 
-#define LOCAL_PORT 60000
+#include "config.h"
 
 typedef void Sigfunc(int);
 
@@ -24,10 +24,13 @@ void sigchld_handler(int signo);
 
 int main(int argc, char **argv)
 {
+  config config;
   int listenfd, connectfd;
   struct sockaddr_in listenaddr, clientaddr;
   socklen_t len;
   pid_t child_pid;
+
+  build_config(argc, argv, &config);
 
   if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
     perror("socket error");
@@ -36,8 +39,8 @@ int main(int argc, char **argv)
 
   memset(&listenaddr, 0, sizeof(listenaddr));
   listenaddr.sin_family = AF_INET;
-  listenaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-  listenaddr.sin_port = htons(LOCAL_PORT);
+  listenaddr.sin_addr.s_addr = config.bind_address;
+  listenaddr.sin_port = config.bind_port;
 
   if ((bind(listenfd, (struct sockaddr*)&listenaddr, sizeof(listenaddr))) == -1) {
     perror("bind error");
