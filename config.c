@@ -21,6 +21,7 @@ void build_config(int argc, char **argv, config *config)
 {
   struct option option_info[] = {
     { "bind",   required_argument, NULL, 'b' },
+    { "server", required_argument, NULL, 's' },
     { NULL,     0,                 NULL,  0  }
   };
   int opt;
@@ -28,7 +29,7 @@ void build_config(int argc, char **argv, config *config)
 
   memset(config, 0, sizeof(&config));
 
-  while ((opt = getopt_long(argc, argv, "b:", option_info, NULL)) != -1) {
+  while ((opt = getopt_long(argc, argv, "b:s:", option_info, NULL)) != -1) {
     switch (opt) {
     case 'b':
       pos = strchr(optarg, ':');
@@ -48,6 +49,14 @@ void build_config(int argc, char **argv, config *config)
 	config->bind_port = htons((int)strtol(optarg, (char **)NULL, 10));
       }
       break;
+    case 's':
+      pos = strchr(optarg, ':');
+      if (pos != NULL) {
+	config->server_port = htons((int)strtol(pos + 1, (char **)NULL, 10));
+	*pos = '\0';
+      }
+      strncpy(config->server_hostname, optarg, sizeof(config->server_hostname) - 1);
+      break;
     default:
       usage();
       exit(EXIT_FAILURE);
@@ -63,6 +72,16 @@ void build_config(int argc, char **argv, config *config)
     config->bind_port = htons(DEFAULT_LOCAL_PORT);
   }
 
+  if (strlen(config->server_hostname) == 0) {
+    fprintf(stderr, "-s option required\n");
+    usage();
+    exit(EXIT_FAILURE);
+  }
+
+  if (config->server_port == 0) {
+    config->server_port = config->bind_port;
+  }
+
   return;
 }
 
@@ -70,6 +89,7 @@ static void usage()
 {
   fprintf(stderr, "usage\n");
   fprintf(stderr, "-b --bind [ADDRESS:]PORT\n");
+  fprintf(stderr, "-s --server HOSTNAME[:PORT]\n");
 
   return;
 }

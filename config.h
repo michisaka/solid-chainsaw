@@ -12,6 +12,8 @@ copyright (C) 2017 Koshi.Michisaka
 typedef struct {
   in_addr_t bind_address;
   in_port_t bind_port;
+  char server_hostname[254];
+  in_port_t server_port;
 } config;
 
 void build_config(int argc, char **argv, config *config);
