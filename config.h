@@ -7,13 +7,11 @@ copyright (C) 2017 Koshi.Michisaka
 #ifndef INCLUDED_CONFIG_H
 #define INCLUDED_CONFIG_H
 
-#include <netinet/in.h>
-
-typedef struct {
-  in_addr_t bind_address;
-  in_port_t bind_port;
+typedef struct config {
+  char bind_address[254];
+  char bind_port[17];
   char server_hostname[254];
-  in_port_t server_port;
+  char server_port[17];
 } config;
 
 void build_config(int argc, char **argv, config *config);

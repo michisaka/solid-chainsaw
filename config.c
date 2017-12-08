@@ -8,12 +8,10 @@ copyright (C) 2017 Koshi.Michisaka
 #include <stdlib.h>
 #include <getopt.h>
 #include <string.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
 
 #include "config.h"
 
-#define DEFAULT_LOCAL_PORT 60000
+#define DEFAULT_LOCAL_PORT "60000"
 
 static void usage();
 
@@ -27,33 +25,25 @@ void build_config(int argc, char **argv, config *config)
   int opt;
   char *pos;
 
-  memset(config, 0, sizeof(&config));
+  memset(config, 0, sizeof(struct config));
 
   while ((opt = getopt_long(argc, argv, "b:s:", option_info, NULL)) != -1) {
     switch (opt) {
     case 'b':
       pos = strchr(optarg, ':');
       if (pos != NULL) {
-	config->bind_port = htons((int)strtol(pos + 1, (char **)NULL, 10));
 	*pos = '\0';
-	switch (inet_pton(AF_INET, optarg, &config->bind_address)) {
-	case -1:
-	  perror("inet_pton error");
-	  exit(EXIT_FAILURE);
-	  break;
-	case 0:
-	  usage();
-	  exit(EXIT_FAILURE);
-	}
+	strncpy(config->bind_address, optarg, sizeof(config->bind_address) - 1 );
+	strncpy(config->bind_port, pos + 1, sizeof(config->bind_port) - 1);
       } else {
-	config->bind_port = htons((int)strtol(optarg, (char **)NULL, 10));
+	strncpy(config->bind_port, optarg, sizeof(config->bind_port) - 1);
       }
       break;
     case 's':
       pos = strchr(optarg, ':');
       if (pos != NULL) {
-	config->server_port = htons((int)strtol(pos + 1, (char **)NULL, 10));
 	*pos = '\0';
+	strncpy(config->server_port, pos + 1, sizeof(config->server_port) - 1);
       }
       strncpy(config->server_hostname, optarg, sizeof(config->server_hostname) - 1);
       break;
@@ -65,11 +55,8 @@ void build_config(int argc, char **argv, config *config)
   argc -= optind;
   argv += optind;
 
-  if (config->bind_address == 0) {
-    config->bind_address = htonl(INADDR_ANY);
-  }
-  if (config->bind_port == 0) {
-    config->bind_port = htons(DEFAULT_LOCAL_PORT);
+  if (strlen(config->bind_port) == 0) {
+    strncpy(config->bind_port, DEFAULT_LOCAL_PORT, sizeof(config->bind_port) - 1);
   }
 
   if (strlen(config->server_hostname) == 0) {
@@ -78,8 +65,8 @@ void build_config(int argc, char **argv, config *config)
     exit(EXIT_FAILURE);
   }
 
-  if (config->server_port == 0) {
-    config->server_port = config->bind_port;
+  if (strlen(config->server_port) == 0) {
+    strncpy(config->server_port, config->bind_port, sizeof(config->server_port));
   }
 
   return;

@@ -13,6 +13,7 @@ copyright (C) 2017 Koshi.Michisaka
 #include <signal.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <netdb.h>
 
 #include "config.h"
 #include "bouncer.h"
@@ -26,25 +27,48 @@ void sigchld_handler(int signo);
 int main(int argc, char **argv)
 {
   config config;
+  struct addrinfo ga_hints, *ga_res, *ga_ite;
   int listenfd, connectfd;
-  struct sockaddr_in listenaddr, clientaddr;
+  struct sockaddr_in clientaddr;
   socklen_t len;
   pid_t child_pid;
+  int ret;
+  char *bind_address;
 
   build_config(argc, argv, &config);
 
-  if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-    perror("socket error");
+  memset(&ga_hints, 0, sizeof(ga_hints));
+  ga_hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG | AI_NUMERICHOST;
+  ga_hints.ai_family = AF_INET;
+  ga_hints.ai_socktype = SOCK_STREAM;
+
+  if (strlen(config.bind_address)) {
+    bind_address = config.bind_address;
+  } else {
+    bind_address = NULL;
+  }
+
+  if ((ret = getaddrinfo(bind_address, config.bind_port , &ga_hints, &ga_res)) != 0) {
+    fprintf(stderr, "getaddrinfo error %s\n", gai_strerror(ret));
     exit(EXIT_FAILURE);
   }
 
-  memset(&listenaddr, 0, sizeof(listenaddr));
-  listenaddr.sin_family = AF_INET;
-  listenaddr.sin_addr.s_addr = config.bind_address;
-  listenaddr.sin_port = config.bind_port;
-
-  if ((bind(listenfd, (struct sockaddr*)&listenaddr, sizeof(listenaddr))) == -1) {
+  for (ga_ite = ga_res; ga_ite != NULL; ga_ite = ga_ite->ai_next) {
+    listenfd = socket(ga_ite->ai_family, ga_ite->ai_socktype, 0);
+    if (listenfd == -1) {
+      continue;
+    }
+    if ((bind(listenfd, ga_ite->ai_addr, ga_ite->ai_addrlen)) == 0) {
+      break;
+    }
     perror("bind error");
+    close(listenfd);
+  }
+
+  freeaddrinfo(ga_res);
+
+  if (ga_ite == NULL) {
+    fprintf(stderr, "no available server\n");
     exit(EXIT_FAILURE);
   }
 
